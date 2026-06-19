@@ -1,0 +1,155 @@
+# Walkthrough – Correcciones y Mejoras del Sistema Parqueaderito
+
+## 1. Validación de placa ecuatoriana en `tickets`
+
+### Problema corregido
+Al registrar un ticket con una placa en formato incorrecto, el sistema pasaba la validación del DTO y llegaba a buscar el vehículo en el microservicio de vehículos, retornando el error genérico "vehículo no registrado".
+
+### Solución aplicada
+Se agregó `@Matches` con regex combinado en [create-ticket.dto.ts](file:///j:/Parqueaderito/tickets/src/tickets/dto/create-ticket.dto.ts):
+
+```typescript
+@Matches(/^([A-Za-z]{3}-\d{4}|[A-Z]{2}-\d{3}-[A-Z])$/, {
+    message: 'Formato de placa no válido. Use AAA-1234 para autos/camionetas o AB-123-C para motos (formato Ecuador)',
+})
+```
+
+**Ahora:** Si la placa no coincide con el formato ecuatoriano, la validación del DTO rechaza la solicitud con HTTP 400 **antes** de llamar al microservicio de vehículos.
+
+| Formato | Ejemplo | Tipo |
+|---|---|---|
+| `AAA-1234` | `ABC-1234` | Auto / Camioneta |
+| `AB-123-C` | `PQ-456-Z` | Moto |
+
+---
+
+## 2. Swagger/OpenAPI – Microservicio `tickets` (NestJS)
+
+- **Paquete instalado:** `@nestjs/swagger`
+- **Swagger UI disponible en:** `http://localhost:<PORT>/api`
+- **Archivos modificados:**
+  - [main.ts](file:///j:/Parqueaderito/tickets/src/main.ts) – `DocumentBuilder` + `SwaggerModule.setup`
+  - [tickets.controller.ts](file:///j:/Parqueaderito/tickets/src/tickets/tickets.controller.ts) – `@ApiTags`, `@ApiOperation`, `@ApiResponse`, `@ApiParam`, `@ApiBody`
+  - [create-ticket.dto.ts](file:///j:/Parqueaderito/tickets/src/tickets/dto/create-ticket.dto.ts) – `@ApiProperty` en todos los campos
+  - [update-ticket.dto.ts](file:///j:/Parqueaderito/tickets/src/tickets/dto/update-ticket.dto.ts) – `@ApiProperty` + tipado correcto con `@IsBoolean()`
+  - [ticket-response.dto.ts](file:///j:/Parqueaderito/tickets/src/tickets/dto/ticket-response.dto.ts) – `@ApiProperty` en todos los campos
+
+> [!NOTE]
+> Se aprovechó para agregar `ValidationPipe` global con `whitelist: true` en main.ts, que mejora la seguridad rechazando campos no declarados.
+
+---
+
+## 3. Swagger/OpenAPI – Microservicio `vehiqlos` (NestJS)
+
+- **Paquete instalado:** `@nestjs/swagger`
+- **Swagger UI disponible en:** `http://localhost:<PORT>/api`
+- **Archivos modificados:**
+  - [main.ts](file:///j:/Parqueaderito/vehiqlos/src/main.ts) – `DocumentBuilder` + `SwaggerModule.setup`
+  - [vehiqlos.controller.ts](file:///j:/Parqueaderito/vehiqlos/src/vehiqlos/vehiqlos.controller.ts) – decoradores completos
+  - [create-vehiqlo.dto.ts](file:///j:/Parqueaderito/vehiqlos/src/vehiqlos/dto/create-vehiqlo.dto.ts) – `@ApiProperty` en todos los campos de todas las clases (`BaseVehiculoDto`, `AutoDto`, `MotoDto`, `CamionetaDto`, `CreateVehiqloDto`)
+
+---
+
+## 4. CRUD Completo – Microservicio `usuarios` (Spring Boot)
+
+### Endpoints faltantes agregados
+
+#### Usuarios (`/api/v1/users`)
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `PUT` | `/{id}` | Actualiza datos personales del usuario |
+| `DELETE` | `/{id}` | Elimina permanentemente el usuario |
+
+#### Roles (`/api/v1/roles`)
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `PUT` | `/{id}` | Actualiza nombre y descripción del rol |
+| `DELETE` | `/{id}` | Elimina permanentemente el rol |
+
+### Archivos modificados
+- [UserService.java](file:///j:/Parqueaderito/usuarios/src/main/java/ec/edu/espe/usuarios/services/UserService.java) – interfaz con `updateUser` y `deleteUser`
+- [UserServiceImpl.java](file:///j:/Parqueaderito/usuarios/src/main/java/ec/edu/espe/usuarios/services/impl/UserServiceImpl.java) – implementación
+- [UserController.java](file:///j:/Parqueaderito/usuarios/src/main/java/ec/edu/espe/usuarios/controller/UserController.java) – endpoints + Swagger `@Tag`, `@Operation`, `@ApiResponses`
+- [RoleService.java](file:///j:/Parqueaderito/usuarios/src/main/java/ec/edu/espe/usuarios/services/RoleService.java) – interfaz con `updateRole` y `deleteRole`
+- [RoleServiceImpl.java](file:///j:/Parqueaderito/usuarios/src/main/java/ec/edu/espe/usuarios/services/impl/RoleServiceImpl.java) – implementación
+- [RoleController.java](file:///j:/Parqueaderito/usuarios/src/main/java/ec/edu/espe/usuarios/controller/RoleController.java) – endpoints + Swagger
+- [pom.xml](file:///j:/Parqueaderito/usuarios/pom.xml) – `springdoc-openapi-starter-webmvc-ui:2.8.9`
+
+**Swagger UI disponible en:** `http://localhost:<PORT>/swagger-ui/index.html`
+
+---
+
+## 5. CRUD Completo + Swagger – Microservicio `zonas-espacios` (Spring Boot)
+
+### Endpoint faltante agregado en Zonas
+
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/api/zonas/{idZona}` | Obtiene una zona por su UUID |
+
+### Archivos modificados
+- [ZonaServicio.java](file:///j:/Parqueaderito/zonas-espacios/src/main/java/ec/edu/espe/zonas/servicios/interfaz/ZonaServicio.java) – interfaz con `obtenerZona(UUID id)`
+- [ServicioZona.java](file:///j:/Parqueaderito/zonas-espacios/src/main/java/ec/edu/espe/zonas/servicios/impl/ServicioZona.java) – implementación
+- [ZonaControlador.java](file:///j:/Parqueaderito/zonas-espacios/src/main/java/ec/edu/espe/zonas/controladores/ZonaControlador.java) – endpoint GET + Swagger completo
+- [EspacioControlador.java](file:///j:/Parqueaderito/zonas-espacios/src/main/java/ec/edu/espe/zonas/controladores/EspacioControlador.java) – Swagger completo (ya tenía CRUD completo)
+- [pom.xml](file:///j:/Parqueaderito/zonas-espacios/pom.xml) – `springdoc-openapi-starter-webmvc-ui:2.8.9`
+
+**Swagger UI disponible en:** `http://localhost:<PORT>/swagger-ui/index.html`
+
+---
+
+## Estado final del CRUD por microservicio
+
+| Microservicio | Create | Read All | Read One | Update | Delete |
+|---|---|---|---|---|---|
+| `tickets` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `vehiqlos` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `usuarios` – Users | ✅ | ✅ | ✅ | ✅ *(nuevo)* | ✅ *(nuevo)* |
+| `usuarios` – Roles | ✅ | ✅ | ✅ | ✅ *(nuevo)* | ✅ *(nuevo)* |
+| `zonas-espacios` – Espacios | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `zonas-espacios` – Zonas | ✅ | ✅ | ✅ *(nuevo)* | ✅ | ✅ |
+
+---
+
+## URLs de Swagger UI por microservicio
+
+| Microservicio | URL |
+|---|---|
+| `tickets` | `http://localhost:3001/api` |
+| `vehiqlos` | `http://localhost:3000/api` |
+| `usuarios` | `http://localhost:9090/swagger-ui/index.html` |
+| `zonas-espacios` | `http://localhost:8080/swagger-ui/index.html` |
+
+---
+
+## 6. Arquitectura de Seguridad JWT (MVP HS256)
+
+Se implementó una arquitectura de seguridad distribuida donde el microservicio de **usuarios** actúa como Emisor JWT, y los microservicios de **zonas-espacios**, **tickets** y **vehiqlos** actúan como Validadores JWT utilizando una clave secreta compartida (`JWT_SECRET`).
+
+### 6.1 Emisión de Tokens (`usuarios`)
+- **JWT Emitidos:** Utilizan el algoritmo HS256 con claims `sub` (UUID del usuario), `username`, `roles`, `iss` y `aud`.
+- **BCrypt:** Contraseñas hasheadas con `BCryptPasswordEncoder` (fuerza 12). Se corrigió la creación de usuarios para cifrar el DNI antes de persistirlo en la base de datos.
+- **Seeder:** Componente `DataSeeder` que autogenera los 6 roles necesarios (`ADMIN`, `OPERADOR`, `SUPERVISOR`, `CLIENTE`, `SERVICE_TICKETS`, `AUDITOR`) si no existen al arrancar la aplicación.
+- **Login:** Ruta pública `POST /api/v1/auth/login` que valida credenciales y retorna el token.
+
+### 6.2 Validación de Tokens & Control de Acceso
+- **Spring Boot (`zonas-espacios`):**
+  - Validación local con firma, expiración y claims.
+  - Endpoints de consulta (`GET /api/espacios/**`, `GET /api/zonas/**`) son públicos para visualización preliminar.
+  - Modificación de estado del espacio (`PATCH /api/espacios/*/estado/*`) restringido a roles `ADMIN`, `OPERADOR` o `SERVICE_TICKETS`.
+  - Operaciones de creación/edición/borrado restringidas a `ADMIN`.
+- **NestJS (`tickets` y `vehiqlos`):**
+  - Estrategias `PassportStrategy(Strategy, 'jwt')` y guards (`JwtAuthGuard`, `RolesGuard`) para validación y control de acceso.
+  - Decorador `@Roles(...)` para definir permisos específicos por método.
+  - En `vehiqlos`: Lectura permitida para roles autorizados, escritura restringida a `ADMIN`.
+  - En `tickets`: Operaciones restringidas por rol (por ejemplo, `remove` solo accesible por `ADMIN`).
+
+### 6.3 Resiliencia y Propagación de Credenciales (`tickets`)
+- **Timeout en Fetch:** Se implementó una duración máxima de 5 segundos utilizando `AbortController` para todas las llamadas externas en `tickets.service.ts`, previniendo bloqueos indefinidos si un microservicio cae.
+- **Propagación de Header:** `TicketsService` ahora recibe el token de autorización enviado por el cliente y lo propaga en la cabecera `Authorization: Bearer <token>` en todas las llamadas internas dirigidas a `usuarios`, `vehiqlos` y `zonas-espacios`, asegurando que no fallen debido a la seguridad añadida.
+
+### 6.4 Configuración Global de CORS y Helmet
+- **Helmet:** Agregado en los microservicios NestJS (`tickets`, `vehiqlos`) para configurar cabeceras HTTP seguras contra ataques comunes.
+- **CORS:** Configurado en los 4 microservicios leyendo los orígenes permitidos desde variables de entorno (`CORS_ALLOWED_ORIGINS` / `cors.allowed-origins`).
+- **Configuración Swagger:** Se añadió soporte para Bearer Token en todos los Swagger UI para permitir pruebas cómodas directamente desde la documentación interactiva.
+

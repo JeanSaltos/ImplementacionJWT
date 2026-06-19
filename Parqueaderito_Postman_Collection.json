@@ -1,0 +1,467 @@
+{
+  "info": {
+    "name": "Parqueaderito - Sistema Completo",
+    "_postman_id": "parqueaderito-v1-collection",
+    "description": "Colección completa para probar los 4 microservicios del sistema de parqueadero con seguridad JWT.\n\n**Flujo de prueba recomendado:**\n1. Iniciar sesión (Login) para obtener el token JWT.\n2. Crear un rol de operador y un nuevo usuario.\n3. Crear una zona y un espacio de parqueo.\n4. Registrar un vehículo en el sistema.\n5. Crear un ticket (Entrada) o reservar el espacio.\n6. Confirmar reserva si aplica, y registrar la salida (Cerrar Ticket).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "BASE_USUARIOS", "value": "http://localhost:9090" },
+    { "key": "BASE_VEHICULOS", "value": "http://localhost:3000" },
+    { "key": "BASE_ZONAS", "value": "http://localhost:8080" },
+    { "key": "BASE_TICKETS", "value": "http://localhost:3001" },
+    { "key": "accessToken", "value": "" },
+    { "key": "role_id", "value": "" },
+    { "key": "user_id", "value": "" },
+    { "key": "zona_id", "value": "" },
+    { "key": "espacio_id", "value": "" },
+    { "key": "vehiculo_id", "value": "" },
+    { "key": "ticket_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Autenticación (Puerto 9090)",
+      "item": [
+        {
+          "name": "Login - Admin Semilla",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "    pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "}",
+                  "pm.test('Status 200 - Token obtenido', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{BASE_USUARIOS}}/api/v1/auth/login", "host": ["{{BASE_USUARIOS}}"], "path": ["api", "v1", "auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin\"\n}"
+            },
+            "description": "Autenticarse con el usuario administrador sembrado por defecto en la base de datos al arrancar el microservicio usuarios."
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Usuarios (Puerto 9090)",
+      "item": [
+        {
+          "name": "1.1 Crear Rol",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('role_id', json.id);",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{BASE_USUARIOS}}/api/v1/roles", "host": ["{{BASE_USUARIOS}}"], "path": ["api", "v1", "roles"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"OPERADOR_TEST\",\n  \"description\": \"Rol de operador de pruebas\"\n}"
+            }
+          }
+        },
+        {
+          "name": "1.2 Listar Roles",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_USUARIOS}}/api/v1/roles", "host": ["{{BASE_USUARIOS}}"], "path": ["api", "v1", "roles"] }
+          }
+        },
+        {
+          "name": "1.3 Crear Usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('user_id', json.id);",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{BASE_USUARIOS}}/api/v1/users", "host": ["{{BASE_USUARIOS}}"], "path": ["api", "v1", "users"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dni\": \"1726354890\",\n  \"firstName\": \"Juan\",\n  \"middleName\": \"Carlos\",\n  \"lastName\": \"Perez\",\n  \"email\": \"juan.perez@email.com\",\n  \"phone\": \"0999999999\",\n  \"address\": \"Av. General Rumiñahui 123\",\n  \"nationality\": \"Ecuatoriana\"\n}"
+            }
+          }
+        },
+        {
+          "name": "1.4 Listar Usuarios",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_USUARIOS}}/api/v1/users", "host": ["{{BASE_USUARIOS}}"], "path": ["api", "v1", "users"] }
+          }
+        },
+        {
+          "name": "1.5 Obtener Usuario por ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_USUARIOS}}/api/v1/users/{{user_id}}", "host": ["{{BASE_USUARIOS}}"], "path": ["api", "v1", "users", "{{user_id}}"] }
+          }
+        },
+        {
+          "name": "1.6 Asignar Rol a Usuario",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{BASE_USUARIOS}}/api/v1/users/{{user_id}}/roles/{{role_id}}", "host": ["{{BASE_USUARIOS}}"], "path": ["api", "v1", "users", "{{user_id}}", "roles", "{{role_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Zonas-Espacios (Puerto 8080)",
+      "item": [
+        {
+          "name": "2.1 Crear Zona",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('zona_id', json.id);",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{BASE_ZONAS}}/api/zonas", "host": ["{{BASE_ZONAS}}"], "path": ["api", "zonas"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"ZonaNorte\",\n  \"descripcion\": \"Zona norte del parqueadero principal\",\n  \"capacidad\": 20,\n  \"tipo\": \"GENERAL\"\n}"
+            }
+          }
+        },
+        {
+          "name": "2.2 Listar Zonas",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_ZONAS}}/api/zonas", "host": ["{{BASE_ZONAS}}"], "path": ["api", "zonas"] }
+          }
+        },
+        {
+          "name": "2.3 Actualizar Zona",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{BASE_ZONAS}}/api/zonas/{{zona_id}}", "host": ["{{BASE_ZONAS}}"], "path": ["api", "zonas", "{{zona_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"ZonaNorte\",\n  \"descripcion\": \"Descripción actualizada de la zona norte\",\n  \"capacidad\": 25,\n  \"tipo\": \"GENERAL\"\n}"
+            }
+          }
+        },
+        {
+          "name": "2.4 Crear Espacio en Zona",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('espacio_id', json.id);",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{BASE_ZONAS}}/api/espacios", "host": ["{{BASE_ZONAS}}"], "path": ["api", "espacios"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Espacio #1 para autos\",\n  \"tipo\": \"AUTO\",\n  \"idZona\": \"{{zona_id}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "2.5 Listar Todos los Espacios",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_ZONAS}}/api/espacios", "host": ["{{BASE_ZONAS}}"], "path": ["api", "espacios"] }
+          }
+        },
+        {
+          "name": "2.6 Obtener Espacio por ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_ZONAS}}/api/espacios/{{espacio_id}}", "host": ["{{BASE_ZONAS}}"], "path": ["api", "espacios", "{{espacio_id}}"] }
+          }
+        },
+        {
+          "name": "2.7 Espacios por Estado (DISPONIBLE)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_ZONAS}}/api/espacios/estado/DISPONIBLE", "host": ["{{BASE_ZONAS}}"], "path": ["api", "espacios", "estado", "DISPONIBLE"] }
+          }
+        },
+        {
+          "name": "2.8 Espacios por Zona y Estado",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_ZONAS}}/api/espacios/zona/{{zona_id}}/estado/DISPONIBLE", "host": ["{{BASE_ZONAS}}"], "path": ["api", "espacios", "zona", "{{zona_id}}", "estado", "DISPONIBLE"] }
+          }
+        },
+        {
+          "name": "2.9 Estadísticas por Estado",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_ZONAS}}/api/espacios/estadisticas/OCUPADO", "host": ["{{BASE_ZONAS}}"], "path": ["api", "espacios", "estadisticas", "OCUPADO"] }
+          }
+        },
+        {
+          "name": "2.10 Cambiar Estado de Espacio (Manual)",
+          "request": {
+            "method": "PATCH",
+            "url": { "raw": "{{BASE_ZONAS}}/api/espacios/{{espacio_id}}/estado/MANTENIMIENTO", "host": ["{{BASE_ZONAS}}"], "path": ["api", "espacios", "{{espacio_id}}", "estado", "MANTENIMIENTO"] }
+          }
+        },
+        {
+          "name": "2.11 Eliminar Zona",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{BASE_ZONAS}}/api/zonas/{{zona_id}}", "host": ["{{BASE_ZONAS}}"], "path": ["api", "zonas", "{{zona_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Vehículos (Puerto 3000)",
+      "item": [
+        {
+          "name": "3.1 Registrar Auto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('vehiculo_id', json.id);",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{BASE_VEHICULOS}}/vehiqlos", "host": ["{{BASE_VEHICULOS}}"], "path": ["vehiqlos"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"Auto\",\n  \"datos\": {\n    \"placa\": \"ABC-1234\",\n    \"marca\": \"Chevrolet\",\n    \"modelo\": \"Aveo\",\n    \"color\": \"Rojo\",\n    \"anio\": 2022,\n    \"clasificacion\": \"Gasolina\",\n    \"numPuertas\": 4,\n    \"capacidadMaletero\": 300\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "3.2 Registrar Moto",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{BASE_VEHICULOS}}/vehiqlos", "host": ["{{BASE_VEHICULOS}}"], "path": ["vehiqlos"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"Moto\",\n  \"datos\": {\n    \"placa\": \"AB-125-C\",\n    \"marca\": \"Honda\",\n    \"modelo\": \"CBR\",\n    \"color\": \"Negro\",\n    \"anio\": 2021,\n    \"clasificacion\": \"Gasolina\",\n    \"cilindraje\": 125,\n    \"tipo\": \"Deportiva\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "3.3 Registrar Camioneta",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{BASE_VEHICULOS}}/vehiqlos", "host": ["{{BASE_VEHICULOS}}"], "path": ["vehiqlos"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"Camioneta\",\n  \"datos\": {\n    \"placa\": \"XYZ-9876\",\n    \"marca\": \"Toyota\",\n    \"modelo\": \"Hilux\",\n    \"color\": \"Blanco\",\n    \"anio\": 2020,\n    \"clasificacion\": \"Diesel\",\n    \"cabina\": \"Simple\",\n    \"capacidadCarga\": 1000\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "3.4 Listar Todos los Vehículos",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_VEHICULOS}}/vehiqlos", "host": ["{{BASE_VEHICULOS}}"], "path": ["vehiqlos"] }
+          }
+        },
+        {
+          "name": "3.5 Buscar Vehículo por Placa",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_VEHICULOS}}/vehiqlos?placa=ABC-1234", "host": ["{{BASE_VEHICULOS}}"], "path": ["vehiqlos"], "query": [{ "key": "placa", "value": "ABC-1234" }] }
+          }
+        },
+        {
+          "name": "3.6 Obtener Vehículo por ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_VEHICULOS}}/vehiqlos/{{vehiculo_id}}", "host": ["{{BASE_VEHICULOS}}"], "path": ["vehiqlos", "{{vehiculo_id}}"] }
+          }
+        },
+        {
+          "name": "3.7 Actualizar Vehículo",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{BASE_VEHICULOS}}/vehiqlos/{{vehiculo_id}}", "host": ["{{BASE_VEHICULOS}}"], "path": ["vehiqlos", "{{vehiculo_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datos\": {\n    \"color\": \"Azul\",\n    \"anio\": 2023\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "3.8 Eliminar Vehículo",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{BASE_VEHICULOS}}/vehiqlos/{{vehiculo_id}}", "host": ["{{BASE_VEHICULOS}}"], "path": ["vehiqlos", "{{vehiculo_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Tickets (Puerto 3001)",
+      "item": [
+        {
+          "name": "4.1 Abrir Ticket (Entrada de Vehículo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('ticket_id', json.id);",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{BASE_TICKETS}}/tickets", "host": ["{{BASE_TICKETS}}"], "path": ["tickets"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"ABC-1234\",\n  \"dni\": \"1726354890\",\n  \"idEspacio\": \"{{espacio_id}}\"\n}"
+            },
+            "description": "Crea un ticket de entrada. Valida que:\n- La placa esté registrada en el servicio de Vehículos\n- El DNI esté registrado en el servicio de Usuarios\n- El espacio exista y esté DISPONIBLE en Zonas-Espacios\n\nAl crear el ticket, el espacio cambia automáticamente a OCUPADO."
+          }
+        },
+        {
+          "name": "4.2 Listar Todos los Tickets",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_TICKETS}}/tickets", "host": ["{{BASE_TICKETS}}"], "path": ["tickets"] }
+          }
+        },
+        {
+          "name": "4.3 Obtener Ticket por ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_TICKETS}}/tickets/{{ticket_id}}", "host": ["{{BASE_TICKETS}}"], "path": ["tickets", "{{ticket_id}}"] }
+          }
+        },
+        {
+          "name": "4.4 Cerrar Ticket (Salida y Cobro)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{BASE_TICKETS}}/tickets/{{ticket_id}}", "host": ["{{BASE_TICKETS}}"], "path": ["tickets", "{{ticket_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}"
+            },
+            "description": "Registra la salida del vehículo. El sistema:\n1. Calcula las horas de estadía (mínimo 1 hora, redondeando hacia arriba)\n2. Multiplica por TARIFA_HORA (configurada en .env, por defecto $1.00)\n3. Guarda la fecha/hora de salida y el valorRecaudo en la BD\n4. Cambia el espacio automáticamente a DISPONIBLE en Zonas-Espacios"
+          }
+        },
+        {
+          "name": "4.5 Eliminar Ticket",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{BASE_TICKETS}}/tickets/{{ticket_id}}", "host": ["{{BASE_TICKETS}}"], "path": ["tickets", "{{ticket_id}}"] }
+          }
+        },
+        {
+          "name": "4.6 Reservar Espacio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('ticket_id', json.id);",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{BASE_TICKETS}}/tickets/reservar", "host": ["{{BASE_TICKETS}}"], "path": ["tickets", "reservar"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"ABC-1234\",\n  \"dni\": \"1726354890\",\n  \"idEspacio\": \"{{espacio_id}}\"\n}"
+            },
+            "description": "Crea una reserva de espacio. El estado del espacio cambia automáticamente a RESERVADO."
+          }
+        },
+        {
+          "name": "4.7 Confirmar Reserva",
+          "request": {
+            "method": "PATCH",
+            "url": { "raw": "{{BASE_TICKETS}}/tickets/{{ticket_id}}/confirmar", "host": ["{{BASE_TICKETS}}"], "path": ["tickets", "{{ticket_id}}", "confirmar"] },
+            "description": "Confirma una reserva existente de vehículo. El estado de la reserva cambia a ocupado (esReserva: false) y el espacio pasa a OCUPADO."
+          }
+        },
+        {
+          "name": "4.8 Emitir Ticket (Detallado)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{BASE_TICKETS}}/tickets/{{ticket_id}}/emitir", "host": ["{{BASE_TICKETS}}"], "path": ["tickets", "{{ticket_id}}", "emitir"] }
+          }
+        }
+      ]
+    }
+  ]
+}

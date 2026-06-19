@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: zonas-espacios
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/zonas_espacios?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: ${JPA_SHOW_SQL:true}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: ${JPA_FORMAT_SQL:true}
+
+jwt:
+  secret: ${JWT_SECRET:parqueaderito-secret-key-dev-only-change-in-production-256bits}
+  issuer: ${JWT_ISSUER:parqueaderito-usuarios}
+  audience: ${JWT_AUDIENCE:parqueaderito-api}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:4200,http://localhost:3002}

@@ -1,0 +1,40 @@
+# Walkthrough — Implementación de Reservas y Emisión de Tickets
+
+Se han implementado con éxito todas las tareas solicitadas y las mejoras para el control del proyecto. A continuación se detallan los cambios realizados y los resultados de validación.
+
+## Cambios Realizados
+
+1. **Modificación de Entidad**:
+   - En [ticket.entity.ts](file:///j:/Parqueaderito/tickets/src/tickets/entities/ticket.entity.ts), se agregó el campo `esReserva: boolean` con valor por defecto `false` para diferenciar entre una reserva activa y un ticket de entrada normal.
+
+2. **Lógica de Reservas e Integración**:
+   - En [tickets.service.ts](file:///j:/Parqueaderito/tickets/src/tickets/tickets.service.ts), se implementaron los métodos:
+     - `reservar()`: Verifica que el espacio esté `DISPONIBLE` en `zonas-espacios`, valida vehículo y usuario, crea el ticket con `esReserva: true` y envía un `PATCH` a `zonas-espacios` para cambiar el estado del espacio a `RESERVADO`.
+     - `confirmarReserva()`: Permite cambiar una reserva a ocupación normal (`esReserva: false`) y actualiza el espacio en `zonas-espacios` a `OCUPADO`.
+     - `mapToResponseDto()`: Helper que mapea un ticket a `TicketResponseDto`, consulta el microservicio de usuarios por DNI para obtener `datosPersona` e integra el cálculo de horas y recaudo.
+     - `emitir()`: Recupera el ticket detallado (`TicketResponseDto`) según su ID.
+
+3. **Exposición de Endpoints**:
+   - En [tickets.controller.ts](file:///j:/Parqueaderito/tickets/src/tickets/tickets.controller.ts), se añadieron los siguientes endpoints específicos:
+     - `POST /tickets/reservar` -> Reserva un espacio.
+     - `PATCH /tickets/:id/confirmar` -> Confirma la llegada del vehículo para una reserva activa.
+     - `GET /tickets/:id/emitir` -> Emite los datos del ticket detallados.
+
+4. **Actualización de Postman**:
+   - Se añadieron a [Parqueaderito_Postman_Collection.json](file:///j:/Parqueaderito/Parqueaderito_Postman_Collection.json) las peticiones correspondientes a reservar, confirmar y emitir en Tickets, y actualizar y eliminar en Vehículos.
+
+5. **Documento de Contexto y Control**:
+   - Se creó y actualizó el archivo [Estado.2](file:///j:/Parqueaderito/Estado.2) en la raíz del proyecto para documentar todos los cambios realizados, la arquitectura actual, los endpoints de todos los servicios y el estado global de compleción.
+
+6. **Completar CRUD de Vehículos**:
+   - En [vehiqlos.service.ts](file:///j:/Parqueaderito/vehiqlos/src/vehiqlos/vehiqlos.service.ts), se implementaron los métodos reales `update` y `remove` utilizando el repositorio TypeORM. Se modificaron las firmas para recibir `id: string` (UUID) y se actualizaron los errores a excepciones HTTP específicas (`NotFoundException`, `BadRequestException`).
+   - En [vehiqlos.controller.ts](file:///j:/Parqueaderito/vehiqlos/src/vehiqlos/vehiqlos.controller.ts), se eliminaron las coerciones numéricas erróneas (`+id` a `number`) que producían `NaN` en los endpoints de actualización y eliminación.
+
+---
+
+## Verificación
+
+Se realizaron las compilaciones de NestJS mediante `npm run build` en ambos microservicios:
+- **Microservicio `tickets`**: Compiló exitosamente.
+- **Microservicio `vehiqlos`**: Compiló exitosamente tras los cambios del CRUD.
+- **Resultado**: Ambos microservicios están listos y son 100% estables a nivel de tipos y compilación.
