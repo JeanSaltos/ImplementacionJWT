@@ -1,0 +1,89 @@
+name: parkingapp
+
+services:
+  usuarios-db:
+    image: postgres:16-alpine
+    container_name: parkingapp-usuarios-db
+    environment:
+      POSTGRES_DB: ${USUARIOS_DB_NAME:-usuarios_db}
+      POSTGRES_USER: ${USUARIOS_DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${USUARIOS_DB_PASSWORD:-postgres}
+    ports:
+      - "${USUARIOS_DB_PORT:-5432}:5432"
+    volumes:
+      - usuarios-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USUARIOS_DB_USERNAME:-postgres} -d ${USUARIOS_DB_NAME:-usuarios_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - parkingapp-net
+
+  vehiqlos-db:
+    image: postgres:16-alpine
+    container_name: parkingapp-vehiqlos-db
+    environment:
+      POSTGRES_DB: ${VEHIQLOS_DB_NAME:-vehiqlos}
+      POSTGRES_USER: ${VEHIQLOS_DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${VEHIQLOS_DB_PASSWORD:-postgres}
+    ports:
+      - "${VEHIQLOS_DB_PORT:-5433}:5432"
+    volumes:
+      - vehiqlos-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${VEHIQLOS_DB_USERNAME:-postgres} -d ${VEHIQLOS_DB_NAME:-vehiqlos}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - parkingapp-net
+
+  tickets-db:
+    image: postgres:16-alpine
+    container_name: parkingapp-tickets-db
+    environment:
+      POSTGRES_DB: ${TICKETS_DB_NAME:-tickets}
+      POSTGRES_USER: ${TICKETS_DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${TICKETS_DB_PASSWORD:-postgres}
+    ports:
+      - "${TICKETS_DB_PORT:-5434}:5432"
+    volumes:
+      - tickets-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TICKETS_DB_USERNAME:-postgres} -d ${TICKETS_DB_NAME:-tickets}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - parkingapp-net
+
+  zonas-espacios-db:
+    image: mysql:8.4
+    container_name: parkingapp-zonas-espacios-db
+    environment:
+      MYSQL_DATABASE: ${ZONAS_DB_NAME:-zonas_espacios}
+      MYSQL_ROOT_PASSWORD: ${ZONAS_DB_ROOT_PASSWORD:-root}
+      MYSQL_USER: ${ZONAS_DB_USERNAME:-parkingapp}
+      MYSQL_PASSWORD: ${ZONAS_DB_PASSWORD:-parkingapp}
+    ports:
+      - "${ZONAS_DB_PORT:-3306}:3306"
+    volumes:
+      - zonas-espacios-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - parkingapp-net
+
+networks:
+  parkingapp-net:
+    driver: bridge
+
+volumes:
+  usuarios-db-data:
+  vehiqlos-db-data:
+  tickets-db-data:
+  zonas-espacios-db-data:

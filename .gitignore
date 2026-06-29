@@ -16,6 +16,7 @@ bin/
 # Environment files
 **/.env
 **/.env*.local
+!**/.env.example
 
 # System/OS files
 .DS_Store
@@ -28,4 +29,14 @@ vehiqlos.rar
 # Temporary/State files
 Estado.1
 Estado.2
+Estado.3
 mmm
+walkthrough2
+
+# Logs and coverage
+**/coverage/
+**/*.log
+logs/
+
+# Docker local overrides
+docker-compose.override.yml
